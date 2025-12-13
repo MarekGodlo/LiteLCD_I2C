@@ -4,10 +4,11 @@
 #include "../Src/LiteLCD_I2C.h"
 #include <stdint.h>
 
-#include "LiteLCD_I2C.h"
+// HAL header file for STM32F4 family
+// Replace with correct header for other STM32 families
 #include "stm32f4xx_hal.h"
 
-static uint8_t _backlight = BL;
+static uint8_t _backlight = LCD_BL;
 extern I2C_HandleTypeDef hi2c1;
 
 static void _sendBits(uint8_t data) {
@@ -25,22 +26,32 @@ static void _send4Bits(uint8_t nibble, uint8_t rs) {
     _pulseEnable(data);
 }
 
+// Public functions
 void LCD_SendCmd(uint8_t data) {
     _send4Bits(data & 0xF0, 0);
     _send4Bits((data<<4) & 0xF0, 0);
 }
 
+// Send a character or a custom char (by CGRAM location)
 void LCD_SendData(uint8_t data) {
     _send4Bits(data & 0xF0, 1);
     _send4Bits((data<<4) & 0xF0, 1);
 }
 
+// Send string
+void LCD_SendStr(const char* str) {
+    while (*str != '\0') {
+        LCD_SendData(*str);
+        str++;
+    }
+}
 
-void LCD_init(void) {
-    // wait for LCD power-up
+// Initializes LCD in 4-bit mode
+void LCD_Init(void) {
+    // Wait for LCD power-up
     HAL_Delay(50);
 
-    // set to 4-bit mode
+    // Wake-up commend
     _send4Bits(0x30, 0);
     HAL_Delay(5);
 
@@ -50,6 +61,7 @@ void LCD_init(void) {
     _send4Bits(0x30, 0);
     HAL_Delay(5);
 
+    // Set to 4-bit mode
     _send4Bits(0x20, 0);
     HAL_Delay(5);
 
@@ -58,6 +70,7 @@ void LCD_init(void) {
     LCD_SendCmd(LCD_DISPLAY_CONTROL);
 
     LCD_SendCmd(LCD_CMD_CLEAR_DISPLAY);
+    // Delay for CLEAR_DISPLAY command
     HAL_Delay(3);
 
     LCD_SendCmd(LCD_ENTRY_MODE_SET | LCD_STATE_CURSOR_LEFT | LCD_STATE_SHIFT_OFF);
@@ -84,18 +97,12 @@ void LCD_SetBacklightControl(uint8_t state_backlightMode) {
     _backlight = state_backlightMode;
 }
 
-void LCD_SetCustomChar(uint8_t state_location, const uint8_t bits[8]) {
-    state_location &= 0x07;
-    LCD_SendCmd(LCD_SET_CGRAM_ADDR | (state_location << 3));
+// Location must be a number between 0 and 7
+void LCD_SetCustomChar(uint8_t location, const uint8_t bits[8]) {
+    location &= 0x07;
+    LCD_SendCmd(LCD_SET_CGRAM_ADDR | (location << 3));
     for (uint8_t i = 0; i < 8; i++) {
         LCD_SendData(bits[i]);
     }
     LCD_SendCmd(0x80);
-}
-
-void LCD_SendStr(const char* str) {
-    while (*str != '\n') {
-        LCD_SendData(*str);
-        str++;
-    }
 }
