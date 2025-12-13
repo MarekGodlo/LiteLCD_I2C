@@ -7,6 +7,7 @@
 #include <stdint.h>
 
 // LCD configuration
+// I2C device address (modify if using another address)
 #define I2C_ADDR (0x27 << 1)
 #define LCD_ENABLE 0x04
 #define LCD_BL 0x08
